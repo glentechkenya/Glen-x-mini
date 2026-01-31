@@ -4,16 +4,20 @@ const P = require("pino")
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require("@whiskeysockets/baileys")
 
 const app = express()
-const PORT = process.env.PORT || 3000
+app.use(express.json())
+app.use(express.static(path.join(__dirname, "public")))
 
-const OWNER_NUMBER = "254718190267"
+// Admin number
+const ADMIN_NUMBER = "254718190267"
 const BOT_NAME = "Glen-x-mini"
 
-let pairingCode = "Starting bot..."
-let connectionStatus = "Starting..."
-let sock
+// Bot variables
+let sock = null
+let pairingCode = ""
+let connectionStatus = "Offline ❌"
 
-async function startBot() {
+// --- Start bot function ---
+async function startBot(number) {
     const { state, saveCreds } = await useMultiFileAuthState("session")
     const { version } = await fetchLatestBaileysVersion()
 
@@ -22,34 +26,26 @@ async function startBot() {
         logger: P({ level: "silent" }),
         printQRInTerminal: false,
         auth: state,
-        browser: [BOT_NAME, "Chrome", "1.0"],
-        connectTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000
+        browser: [BOT_NAME, "Chrome", "1.0"]
     })
 
     sock.ev.on("creds.update", saveCreds)
 
+    // Connection updates
     sock.ev.on("connection.update", async (update) => {
         const { connection, lastDisconnect } = update
 
-        if (connection === "connecting") {
-            connectionStatus = "Connecting to WhatsApp..."
-            console.log(connectionStatus)
-        }
-
+        if (connection === "connecting") connectionStatus = "Connecting..."
         if (connection === "open") {
             connectionStatus = "Connected ✅"
-            console.log("✅ WhatsApp Connected")
-
             if (!sock.authState.creds.registered) {
                 try {
-                    // Wait a few seconds before requesting code
                     await new Promise(r => setTimeout(r, 4000))
-                    pairingCode = await sock.requestPairingCode(OWNER_NUMBER)
-                    console.log("🔥 Pairing Code:", pairingCode)
-                } catch (err) {
-                    console.log("Pairing Error:", err)
-                    pairingCode = "Error generating code. Restart server."
+                    pairingCode = await sock.requestPairingCode(number)
+                    connectionStatus = "Pairing code ready 🔥"
+                } catch {
+                    pairingCode = "Error requesting code. Retry."
+                    connectionStatus = "Disconnected ❌"
                 }
             } else {
                 pairingCode = "Already paired ✅"
@@ -58,21 +54,57 @@ async function startBot() {
 
         if (connection === "close") {
             connectionStatus = "Disconnected ❌"
-            console.log("❌ Connection closed.")
             const shouldReconnect =
                 lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
-            if (shouldReconnect) setTimeout(startBot, 5000)
-            else pairingCode = "Logged out. Delete session folder & restart."
+            if (shouldReconnect) setTimeout(() => startBot(number), 5000)
+            else pairingCode = "Logged out. Restart server."
+        }
+    })
+
+    // --- Message Handler (brain) ---
+    sock.ev.on("messages.upsert", async (msg) => {
+        const message = msg.messages[0]
+        if (!message.message) return
+        const text = message.message.conversation || ""
+        const from = message.key.remoteJid
+
+        if (message.key.fromMe) return
+
+        // Only admin commands
+        if (from.endsWith("@s.whatsapp.net") && from.includes(ADMIN_NUMBER)) {
+            if (text.toLowerCase() === "!restart") {
+                await sock.sendMessage(from, { text: "Restarting bot..." })
+                process.exit(0)
+            }
+            if (text.toLowerCase() === "!status") {
+                await sock.sendMessage(from, { text: `Status: ${connectionStatus}\nPairing code: ${pairingCode}` })
+            }
+        }
+
+        // --- Basic bot features ---
+        if (text.toLowerCase() === "!ping") {
+            await sock.sendMessage(from, { text: "Pong! 🏓" })
+        }
+        if (text.toLowerCase() === "!hello") {
+            await sock.sendMessage(from, { text: "Hello! I'm Glen-x-mini 🤖" })
+        }
+        if (text.toLowerCase() === "!joke") {
+            await sock.sendMessage(from, { text: "Why did the AI cross the road? To automate the chicken! 🐔" })
         }
     })
 }
 
-startBot()
+// --- API to start pairing ---
+app.post("/pair", async (req, res) => {
+    const { number } = req.body
+    if (!number) return res.json({ error: "Number is required" })
+    await startBot(number)
+    res.json({ message: "Pairing started" })
+})
 
-app.use(express.static(path.join(__dirname, "public")))
-
-app.get("/code", (req, res) => {
+// --- API to get status ---
+app.get("/status", (req, res) => {
     res.json({ code: pairingCode, status: connectionStatus })
 })
 
-app.listen(PORT, () => console.log("🌍 Server running on port", PORT))
+app.listen(process.env.PORT || 3000, () => console.log("🌍 Server running"))
