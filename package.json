@@ -1,7 +1,7 @@
 {
-  "name": "glen-x-mini-pair",
+  "name": "glen-x-mini",
   "version": "1.0.0",
-  "description": "Glen-x-mini WhatsApp Pairing Site",
+  "description": "Full WhatsApp minibot Glen-x-mini",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
