@@ -5,44 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      background: #0f2027;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       color: white;
       font-family: Arial, sans-serif;
       text-align: center;
       padding-top: 80px;
+      margin: 0;
     }
+
     .box {
-      background: #203a43;
+      background: rgba(0,0,0,0.4);
       padding: 30px;
-      border-radius: 10px;
+      border-radius: 12px;
       display: inline-block;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+      width: 90%;
+      max-width: 400px;
     }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #code {
+      font-size: 28px;
+      margin: 20px 0;
+      color: #00ffcc;
+      word-break: break-all;
+    }
+
     button {
       padding: 10px 20px;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       background: #00c6ff;
       color: black;
       font-weight: bold;
       cursor: pointer;
+      margin-top: 10px;
     }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    .status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
   </style>
 </head>
 <body>
   <div class="box">
     <h1>🤖 Glen-x-mini Pairing</h1>
-    <p>Admin: 254718190267</p>
-    <h2 id="code">Loading pairing code...</h2>
-    <button onclick="getCode()">Refresh Code</button>
+    <p><strong>Admin:</strong> 254718190267</p>
+
+    <div id="code">Loading pairing code...</div>
+
+    <button onclick="getCode()">🔄 Refresh Code</button>
+
+    <div class="status">
+      Status: <span id="status">Starting...</span>
+    </div>
   </div>
 
   <script>
     async function getCode() {
-      const res = await fetch('/code')
-      const data = await res.json()
-      document.getElementById('code').innerText = data.code
+      try {
+        const res = await fetch('/code')
+        const data = await res.json()
+        document.getElementById('code').innerText = data.code
+        document.getElementById('status').innerText = data.status
+      } catch (err) {
+        document.getElementById('code').innerText = "Server not ready"
+        document.getElementById('status').innerText = "Disconnected"
+      }
     }
 
+    // Auto refresh every 3 seconds
+    setInterval(getCode, 3000)
     getCode()
   </script>
 </body>
