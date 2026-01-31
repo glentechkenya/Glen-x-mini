@@ -12,28 +12,20 @@
       padding-top: 80px;
       margin: 0;
     }
-
     .box {
       background: rgba(0,0,0,0.4);
       padding: 30px;
       border-radius: 12px;
       display: inline-block;
-      box-shadow: 0 0 20px rgba(0,0,0,0.4);
       width: 90%;
       max-width: 400px;
     }
-
-    h1 {
-      margin-bottom: 10px;
-    }
-
     #code {
-      font-size: 28px;
+      font-size: 26px;
       margin: 20px 0;
       color: #00ffcc;
       word-break: break-all;
     }
-
     button {
       padding: 10px 20px;
       border: none;
@@ -42,33 +34,21 @@
       color: black;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 10px;
     }
-
-    button:hover {
-      opacity: 0.85;
-    }
-
     .status {
       margin-top: 15px;
       font-size: 14px;
       color: #ccc;
     }
-
   </style>
 </head>
 <body>
   <div class="box">
     <h1>🤖 Glen-x-mini Pairing</h1>
     <p><strong>Admin:</strong> 254718190267</p>
-
     <div id="code">Loading pairing code...</div>
-
-    <button onclick="getCode()">🔄 Refresh Code</button>
-
-    <div class="status">
-      Status: <span id="status">Starting...</span>
-    </div>
+    <button onclick="getCode()">🔄 Refresh</button>
+    <div class="status">Status: <span id="status">Starting...</span></div>
   </div>
 
   <script>
@@ -78,13 +58,11 @@
         const data = await res.json()
         document.getElementById('code').innerText = data.code
         document.getElementById('status').innerText = data.status
-      } catch (err) {
+      } catch {
         document.getElementById('code').innerText = "Server not ready"
         document.getElementById('status').innerText = "Disconnected"
       }
     }
-
-    // Auto refresh every 3 seconds
     setInterval(getCode, 3000)
     getCode()
   </script>
