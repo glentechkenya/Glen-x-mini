@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Glen-x-mini Pairing</title>
+  <title>Glen-x-mini Bot</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -19,14 +19,17 @@
       width: 90%;
       max-width: 400px;
     }
-    #code {
-      font-size: 26px;
-      margin: 20px 0;
-      color: #00ffcc;
-      word-break: break-all;
+    input {
+      padding: 10px;
+      width: 80%;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
     }
     button {
       padding: 10px 20px;
+      margin-top: 15px;
       border: none;
       border-radius: 6px;
       background: #00c6ff;
@@ -34,36 +37,54 @@
       font-weight: bold;
       cursor: pointer;
     }
+    #code {
+      font-size: 24px;
+      margin: 20px 0;
+      color: #00ffcc;
+      word-break: break-all;
+    }
     .status {
-      margin-top: 15px;
       font-size: 14px;
       color: #ccc;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <div class="box">
-    <h1>🤖 Glen-x-mini Pairing</h1>
-    <p><strong>Admin:</strong> 254718190267</p>
-    <div id="code">Loading pairing code...</div>
-    <button onclick="getCode()">🔄 Refresh</button>
-    <div class="status">Status: <span id="status">Starting...</span></div>
+    <h1>🤖 Glen-x-mini Bot</h1>
+    <input type="text" id="number" placeholder="Enter your number e.g. 254718190267" />
+    <br/>
+    <button onclick="pairNumber()">Pair Number</button>
+    <div id="code">Pairing code will appear here</div>
+    <div class="status">Status: <span id="status">Offline ❌</span></div>
   </div>
 
   <script>
-    async function getCode() {
+    async function pairNumber() {
+      const number = document.getElementById('number').value.trim()
+      if (!number) return alert("Please enter a number")
+      await fetch('/pair', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ number })
+      })
+      getStatus()
+    }
+
+    async function getStatus() {
       try {
-        const res = await fetch('/code')
+        const res = await fetch('/status')
         const data = await res.json()
         document.getElementById('code').innerText = data.code
         document.getElementById('status').innerText = data.status
       } catch {
         document.getElementById('code').innerText = "Server not ready"
-        document.getElementById('status').innerText = "Disconnected"
+        document.getElementById('status').innerText = "Disconnected ❌"
       }
     }
-    setInterval(getCode, 3000)
-    getCode()
+
+    setInterval(getStatus, 3000)
   </script>
 </body>
 </html>
