@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000
 const OWNER_NUMBER = "254718190267"
 const BOT_NAME = "Glen-x-mini"
 
-let pairingCode = "Not generated yet"
+let pairingCode = "Starting bot..."
 let sock
 
 async function startBot() {
@@ -22,36 +22,42 @@ async function startBot() {
         browser: [BOT_NAME, "Chrome", "1.0"]
     })
 
-    if (!sock.authState.creds.registered) {
-        pairingCode = await sock.requestPairingCode(OWNER_NUMBER)
-        console.log("Pairing Code:", pairingCode)
-    }
-
     sock.ev.on("creds.update", saveCreds)
 
-    sock.ev.on("connection.update", (update) => {
+    sock.ev.on("connection.update", async (update) => {
         const { connection, lastDisconnect } = update
+
+        if (connection === "open") {
+            console.log("✅ WhatsApp Connected")
+
+            // Request pairing code ONLY if not registered
+            if (!sock.authState.creds.registered) {
+                try {
+                    pairingCode = await sock.requestPairingCode(OWNER_NUMBER)
+                    console.log("🔥 Pairing Code:", pairingCode)
+                } catch (err) {
+                    console.log("Pairing Error:", err)
+                    pairingCode = "Error generating code. Restart server."
+                }
+            }
+        }
 
         if (connection === "close") {
             const shouldReconnect =
                 lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
+            console.log("❌ Connection closed. Reconnecting:", shouldReconnect)
             if (shouldReconnect) startBot()
-        }
-
-        if (connection === "open") {
-            console.log(`${BOT_NAME} connected`)
+            else pairingCode = "Logged out. Delete session folder and restart."
         }
     })
 }
 
 startBot()
 
-// Serve website
 app.use(express.static(path.join(__dirname, "public")))
 
-// Endpoint to get pairing code
 app.get("/code", (req, res) => {
     res.json({ code: pairingCode })
 })
 
-app.listen(PORT, () => console.log("Server running on port", PORT))
+app.listen(PORT, () => console.log("🌍 Server running on port", PORT))
