@@ -22,7 +22,10 @@ async function startBot() {
         logger: P({ level: "silent" }),
         printQRInTerminal: false,
         auth: state,
-        browser: [BOT_NAME, "Chrome", "1.0"]
+        browser: [BOT_NAME, "Chrome", "1.0"],
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 0,
+        keepAliveIntervalMs: 10000
     })
 
     sock.ev.on("creds.update", saveCreds)
@@ -41,8 +44,7 @@ async function startBot() {
 
             if (!sock.authState.creds.registered) {
                 try {
-                    // Small delay helps on Render
-                    await new Promise(r => setTimeout(r, 4000))
+                    await new Promise(r => setTimeout(r, 5000))
                     pairingCode = await sock.requestPairingCode(OWNER_NUMBER)
                     console.log("🔥 Pairing Code:", pairingCode)
                 } catch (err) {
@@ -56,11 +58,17 @@ async function startBot() {
 
         if (connection === "close") {
             connectionStatus = "Disconnected ❌"
+            console.log("❌ Connection closed.")
+
             const shouldReconnect =
                 lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
-            console.log("❌ Connection closed. Reconnecting:", shouldReconnect)
-            if (shouldReconnect) startBot()
-            else pairingCode = "Logged out. Delete session folder."
+
+            if (shouldReconnect) {
+                console.log("🔄 Reconnecting...")
+                setTimeout(startBot, 5000)
+            } else {
+                pairingCode = "Logged out. Delete session & restart."
+            }
         }
     })
 }
